@@ -29,12 +29,19 @@ class PaymentProcessor:
                 if description_textarea and 'value' in description_textarea.attrs:
                     description = description_textarea['value']
 
-                data.append({
-                    'donor_name': donor_name,
-                    'date': date,
-                    'amount': amount,
-                    'description': description
-                })
+                # Get unique ID from input field
+                donation_id_input = columns[5].find('input', {'class': 'show-onPage'})
+                donation_id = donation_id_input['value'] if donation_id_input else None
+
+                # Add donation with unique id
+                if donation_id:
+                    data.append({
+                        'donor_name': donor_name,
+                        'date': date,
+                        'amount': amount,
+                        'description': description,
+                        'id': donation_id  # Include unique ID
+                    })
 
         return data
 
