@@ -126,7 +126,7 @@ class Coffeete:
         """Check for updates in the donations and update the JSON file if necessary."""
         new_donations = self.get_all_payments()
         try:
-            with open('donations.json', 'r') as file:
+            with open('donations.json', 'r', encoding='utf-8') as file:
                 existing_data = json.load(file)
         except FileNotFoundError:
             existing_data = []
@@ -140,7 +140,7 @@ class Coffeete:
 
         if updated:
             print("New donations detected! Updating the JSON file.")
-            with open('donations.json', 'w',encoding='UTF-8') as file:
+            with open('donations.json', 'w', encoding='utf-8') as file:
                 json.dump(existing_data, file, indent=4, ensure_ascii=False)
         else:
             print("No new donations found. The JSON file is up to date.")
