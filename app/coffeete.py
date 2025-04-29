@@ -54,7 +54,7 @@ class Coffeete:
         current_page_url = self.payment_url
 
         while current_page_url:
-            print(f"Fetching data from {current_page_url}")
+            # print(f"Fetching data from {current_page_url}")
             response = self.session.get(current_page_url, headers=self.headers)
 
             if response.status_code != 200:
