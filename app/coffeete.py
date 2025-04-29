@@ -109,7 +109,7 @@ class Coffeete:
         donations = self.get_all_payments()
 
         try:
-            with open('donations.json', 'r') as file:
+            with open('donations.json', 'r', encoding='utf-8') as file:
                 existing_data = json.load(file)
         except FileNotFoundError:
             existing_data = []
@@ -119,7 +119,7 @@ class Coffeete:
             if donation['donation_id'] not in [d['donation_id'] for d in existing_data]:
                 existing_data.append(donation)
 
-        with open('donations.json', 'w',encoding='UTF-8') as file:
+        with open('donations.json', 'w', encoding='utf-8') as file:
             json.dump(existing_data, file, indent=4, ensure_ascii=False)
 
     def check_for_updates(self):
