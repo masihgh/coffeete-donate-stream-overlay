@@ -16,7 +16,9 @@ def main():
 
     # Fetch and print payments
     payments = coffeete.get_all_payments()
+    coffee_data = coffeete.get_coffee_and_today_donates()
     print(payments)
+    print(coffee_data)
 
 if __name__ == "__main__":
     main()

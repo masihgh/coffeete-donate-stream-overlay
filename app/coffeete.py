@@ -4,8 +4,9 @@ from app.session_manager import save_session
 from app.payment_processor import PaymentProcessor
 
 class Coffeete:
-    def __init__(self, cookies=None, payment_url='https://www.coffeete.ir/UserPanel/payment/DonateBe?page=1'):
+    def __init__(self, cookies=None, payment_url='https://www.coffeete.ir/UserPanel/payment/DonateBe?page=1', home_url='https://www.coffeete.ir/UserPanel/Home'):
         self.payment_url = payment_url
+        self.home_url = home_url
         self.session = requests.Session()
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
@@ -78,3 +79,22 @@ class Coffeete:
                 current_page_url = None  # No more pages to fetch
 
         return payments
+
+    def get_coffee_and_today_donates(self):
+        """Fetch the data for all coffees and today's donations from the home page."""
+        response = self.session.get(self.home_url, headers=self.headers)
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        # Extract "Today's Coffees" using the given XPath-like selector
+        today_coffee = soup.select_one('#wrapper > div:nth-child(3) > div > div > div:nth-child(2) > div:nth-child(3) > div > div > div:nth-child(2) > h3')
+        today_coffee = today_coffee.get_text(strip=True) if today_coffee else "Not found"
+
+        # Extract "All Coffees" using the given XPath-like selector
+        all_coffee = soup.select_one('#wrapper > div:nth-child(3) > div > div > div:nth-child(2) > div:nth-child(2) > div > div > div:nth-child(2) > h3')
+        all_coffee = all_coffee.get_text(strip=True) if all_coffee else "Not found"
+
+        # Returning a dictionary with both pieces of data
+        return {
+            "today_coffee": today_coffee.replace(',',''),
+            "all_coffee": all_coffee.replace(',','')
+        }
