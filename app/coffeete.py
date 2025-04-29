@@ -1,15 +1,12 @@
 import requests
 from bs4 import BeautifulSoup
-from app.session_manager import save_session, load_session
-from app.payment_processor import PaymentProcessor
 import json
-
+from app.session_manager import save_session
+from app.payment_processor import PaymentProcessor
 
 class Coffeete:
-    def __init__(self, cookies=None, payment_url='https://www.coffeete.ir/UserPanel/payment/DonateBe?page=1', donations_file='donations.json', home_url='https://www.coffeete.ir/UserPanel/Home'):
+    def __init__(self, cookies=None, payment_url='https://www.coffeete.ir/UserPanel/payment/DonateBe?page=1'):
         self.payment_url = payment_url
-        self.home_url = home_url
-        self.donations_file = donations_file
         self.session = requests.Session()
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
@@ -20,7 +17,7 @@ class Coffeete:
         else:
             print("Starting a fresh session...")
 
-        # Initialize PaymentProcessor
+        # Initialize payment processor
         self.payment_processor = PaymentProcessor(self.session)
 
     def login(self, login_url, username, password):
@@ -53,24 +50,32 @@ class Coffeete:
             raise Exception("Login failed, please check your credentials or site structure.")
 
     def get_coffee_and_today_donates(self):
-        """Fetch data from the home page for today's coffee and total coffee."""
-        response = self.session.get(self.home_url, headers=self.headers)
+        """Extract today's and total coffee donations."""
+        coffee_data = {'today_coffee': None, 'total_coffee': None}
+
+        home_url = "https://www.coffeete.ir/UserPanel/Home"
+        response = self.session.get(home_url, headers=self.headers)
+
+        if response.status_code != 200:
+            print(f"Failed to fetch the home page with status code {response.status_code}")
+            return coffee_data
+
         soup = BeautifulSoup(response.text, 'html.parser')
 
-        # Extract today's coffee count
-        today_coffee = soup.select_one("#wrapper > div:nth-child(3) > div > div > div:nth-child(2) > div:nth-child(3) > div > div > div:nth-child(2) > h3")
-        total_coffee = soup.select_one("#wrapper > div:nth-child(3) > div > div > div:nth-child(2) > div:nth-child(2) > div > div > div:nth-child(2) > h3")
+        # Extract today's coffee donation
+        today_coffee_element = soup.select_one("#wrapper > div:nth-child(3) > div > div > div:nth-child(2) > div:nth-child(3) > div > div > div:nth-child(2) > h3")
+        if today_coffee_element:
+            coffee_data['today_coffee'] = int(today_coffee_element.get_text(strip=True).replace(',', ''))
 
-        today_coffee_count = today_coffee.get_text(strip=True) if today_coffee else "N/A"
-        total_coffee_count = total_coffee.get_text(strip=True) if total_coffee else "N/A"
+        # Extract total coffee donation
+        total_coffee_element = soup.select_one("#wrapper > div:nth-child(3) > div > div > div:nth-child(2) > div:nth-child(2) > div > div > div:nth-child(2) > h3")
+        if total_coffee_element:
+            coffee_data['total_coffee'] = int(total_coffee_element.get_text(strip=True).replace(',', ''))
 
-        return {
-            "today_coffee": today_coffee_count.replace(',',''),
-            "total_coffee": total_coffee_count.replace(',','')
-        }
+        return coffee_data
 
     def get_all_payments(self):
-        """Fetch all pages of payments and return them."""
+        """Fetch all pages of payments."""
         payments = []
         current_page_url = self.payment_url
 
@@ -93,56 +98,66 @@ class Coffeete:
             next_page = soup.select_one("ul.pagination li:not(.active) a.btn-paging[href]")
 
             if next_page:
-                # If next page exists, construct the full URL
                 current_page_url = 'https://www.coffeete.ir' + next_page['href']
             else:
                 current_page_url = None  # No more pages to fetch
 
         return payments
 
-    def load_donates(self):
-        """Load donations from the JSON file."""
+    def save_donations_to_file(self):
+        """Save donations to an unencrypted JSON file."""
+        donations = self.get_all_payments()
+
         try:
-            with open(self.donations_file, 'r', encoding='utf-8') as f:
-                return json.load(f)
+            with open('donations.json', 'r') as file:
+                existing_data = json.load(file)
         except FileNotFoundError:
-            return []
+            existing_data = []
 
-    def save_donates(self, donations):
-        """Save donations to the JSON file."""
-        with open(self.donations_file, 'w', encoding='utf-8') as f:
-            json.dump(donations, f, ensure_ascii=False, indent=4)
+        # Add the new donations if not already in the existing file
+        for donation in donations:
+            if donation['donation_id'] not in [d['donation_id'] for d in existing_data]:
+                existing_data.append(donation)
 
-    def append_new_donates(self, new_donates):
-        """Append new donations to the JSON file without duplicating."""
-        donations = self.load_donates()
+        with open('donations.json', 'w',encoding='UTF-8') as file:
+            json.dump(existing_data, file, indent=4, ensure_ascii=False)
 
-        # Remove duplicates based on donation ID
-        existing_donates = {d['id']: d for d in donations}
+    def check_for_updates(self):
+        """Check for updates in the donations and update the JSON file if necessary."""
+        new_donations = self.get_all_payments()
+        try:
+            with open('donations.json', 'r') as file:
+                existing_data = json.load(file)
+        except FileNotFoundError:
+            existing_data = []
 
-        # Adding new donations, ensuring no duplicates based on ID
-        for donate in new_donates:
-            if donate['id'] not in existing_donates:
-                existing_donates[donate['id']] = donate
+        # Compare and update
+        updated = False
+        for donation in new_donations:
+            if donation['donation_id'] not in [d['donation_id'] for d in existing_data]:
+                existing_data.append(donation)
+                updated = True
 
-        # Save the unique donations back to the file
-        self.save_donates(list(existing_donates.values()))
+        if updated:
+            print("New donations detected! Updating the JSON file.")
+            with open('donations.json', 'w',encoding='UTF-8') as file:
+                json.dump(existing_data, file, indent=4, ensure_ascii=False)
+        else:
+            print("No new donations found. The JSON file is up to date.")
 
-    def get_biggest_coffee_donate(self):
-        """Return the biggest donation."""
-        donations = self.load_donates()
+    def get_biggest_coffee_donation(self):
+        donations = self.get_all_payments()
         if donations:
-            return max(donations, key=lambda x: x['amount'])
+            biggest = max(donations, key=lambda x: x['amount'])
+            return biggest
         return None
 
-    def get_latest_coffee_donate(self):
-        """Return the latest donation."""
-        donations = self.load_donates()
+    def get_latest_coffee_donation(self):
+        donations = self.get_all_payments()
         if donations:
-            return donations[-1]
+            return donations[0]
         return None
 
-    def get_20_latest_donates(self):
-        """Return the 20 latest donations."""
-        donations = self.load_donates()
-        return donations[-20:] if donations else []
+    def get_latest_20_donates(self):
+        donations = self.get_all_payments()
+        return donations[:20]

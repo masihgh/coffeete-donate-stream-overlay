@@ -16,6 +16,7 @@ class PaymentProcessor:
                 donor_name = columns[2].get_text(strip=True)
                 date = columns[1].get_text(strip=True)
                 amount = columns[4].get_text(strip=True)
+                donation_id = columns[5].find('input', class_='show-onPage')['value']  # Get the donation ID
 
                 # Clean and convert the data
                 amount = self.clean_amount(amount)
@@ -25,23 +26,16 @@ class PaymentProcessor:
                 description_textarea = columns[3].find('textarea')
                 description = None
 
-                # Check if 'textarea' exists and has a 'value' attribute
                 if description_textarea and 'value' in description_textarea.attrs:
                     description = description_textarea['value']
 
-                # Get unique ID from input field
-                donation_id_input = columns[5].find('input', {'class': 'show-onPage'})
-                donation_id = donation_id_input['value'] if donation_id_input else None
-
-                # Add donation with unique id
-                if donation_id:
-                    data.append({
-                        'donor_name': donor_name,
-                        'date': date,
-                        'amount': amount,
-                        'description': description,
-                        'id': donation_id  # Include unique ID
-                    })
+                data.append({
+                    'donor_name': donor_name,
+                    'date': date,
+                    'amount': amount,
+                    'description': description,
+                    'donation_id': donation_id  # Add donation ID
+                })
 
         return data
 

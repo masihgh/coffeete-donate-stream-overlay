@@ -1,6 +1,8 @@
 from app.config import get_login_credentials, LOGIN_URL
 from app.session_manager import load_session
 from app.coffeete import Coffeete
+import json
+import time
 
 
 def main():
@@ -17,25 +19,21 @@ def main():
 
     # Fetch and print payments
     payments = coffeete.get_all_payments()
-    for payment in payments:
-        print(payment)
+    print(f"Payments: {payments}")
 
-    # Fetch and print coffee data
+    # Fetch coffee data and donations
     coffee_data = coffeete.get_coffee_and_today_donates()
     print(f"Today's Coffee: {coffee_data['today_coffee']}")
-    print(f"Total Coffee: {coffee_data['total_coffee']}")
+    print(f"All Coffee: {coffee_data['total_coffee']}")
 
-    # Query the biggest coffee donation
-    biggest_coffee = coffeete.get_biggest_coffee_donate()
-    print(f"Biggest Coffee Donation: {biggest_coffee}")
+    # Save donations to a JSON file initially
+    coffeete.save_donations_to_file()
 
-    # Query the latest coffee donation
-    latest_coffee = coffeete.get_latest_coffee_donate()
-    print(f"Latest Coffee Donation: {latest_coffee}")
-
-    # Query the 20 latest donations
-    latest_20_donates = coffeete.get_20_latest_donates()
-    print(f"Latest 20 Donations: {latest_20_donates}")
+    # Check for updates periodically (e.g., every 5 minutes)
+    while True:
+        print("Checking for new donations...")
+        coffeete.check_for_updates()
+        time.sleep(5)  # Check every 5 minutes
 
 
 if __name__ == "__main__":
