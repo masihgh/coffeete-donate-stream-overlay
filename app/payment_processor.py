@@ -1,27 +1,18 @@
-from bs4 import BeautifulSoup
-
 class PaymentProcessor:
     def __init__(self, session):
         self.session = session
 
-    def get_page_data(self, page_url):
-        """Fetch the data from a single page and return the extracted information."""
-        response = self.session.get(page_url)
-        if response.status_code != 200:
-            print(f"Failed to fetch {page_url} with status code {response.status_code}")
-            return None
-
-        soup = BeautifulSoup(response.text, 'html.parser')
+    def extract_payments(self, soup):
+        """Extract payments from the soup object and return a list."""
         table = soup.find('table', class_='table table-striped h4 table-hover')
         if not table:
             print("No table found on the page.")
-            return None
+            return []
 
         data = []
         for row in table.find_all('tr')[1:]:  # Skip the header row
             columns = row.find_all('td')
             if len(columns) >= 6:
-                # Extract the data from the row
                 donor_name = columns[2].get_text(strip=True)
                 date = columns[1].get_text(strip=True)
                 amount = columns[4].get_text(strip=True)
@@ -30,9 +21,13 @@ class PaymentProcessor:
                 amount = self.clean_amount(amount)
                 date = self.clean_date(date)
 
-                # Safely get the description if available
+                # Get description
                 description_textarea = columns[3].find('textarea')
-                description = description_textarea['value'] if description_textarea and 'value' in description_textarea.attrs else None
+                description = None
+
+                # Check if 'textarea' exists and has a 'value' attribute
+                if description_textarea and 'value' in description_textarea.attrs:
+                    description = description_textarea['value']
 
                 data.append({
                     'donor_name': donor_name,
