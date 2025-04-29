@@ -3,6 +3,8 @@ import configparser
 # Path to the configuration file
 CONFIG_FILE = 'config.ini'
 
+PAYMENT_URL = "https://www.coffeete.ir/UserPanel/payment/DonateBe?page=1"
+LOGIN_URL = "https://www.coffeete.ir/login"
 
 def get_login_credentials():
     """Reads the login credentials from the config.ini file."""
