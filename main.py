@@ -23,7 +23,7 @@ def main():
     # Fetch and print coffee data
     coffee_data = coffeete.get_coffee_and_today_donates()
     print(f"Today's Coffee: {coffee_data['today_coffee']}")
-    print(f"All Coffee: {coffee_data['all_coffee']}")
+    print(f"Total Coffee: {coffee_data['total_coffee']}")
 
     # Query the biggest coffee donation
     biggest_coffee = coffeete.get_biggest_coffee_donate()
@@ -34,7 +34,7 @@ def main():
     print(f"Latest Coffee Donation: {latest_coffee}")
 
     # Query the 20 latest donations
-    latest_20_donates = coffeete.get_latest_20_donates()
+    latest_20_donates = coffeete.get_20_latest_donates()
     print(f"Latest 20 Donations: {latest_20_donates}")
 
 
